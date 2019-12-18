@@ -9,31 +9,8 @@
 using namespace std;
 using namespace datasketches;
 
-#define LOGK_DEFAULT 15
+#define LOGK_DEFAULT 12
 #define SEED_DEFAULT 9001
-
-theta_union make_union_sketch() {
-    return theta_union::builder().set_lg_k(LOGK_DEFAULT).set_seed(SEED_DEFAULT).build();
-}
-
-update_theta_sketch make_update_sketch() {
-    auto sketch = update_theta_sketch::builder().set_lg_k(LOGK_DEFAULT).set_seed(SEED_DEFAULT).build();
-    for (uint64_t i = 0; i < 9999999LL; i++) {
-        sketch.update(i);
-    }
-    return sketch;
-}
-
-void pollute_mem(int n) {
-    for (int i = 0; i < n; i++) {
-        char *p = new char[1024 * 1024];
-        for (int k = 0; i < 1024; i++) {
-            p[1024 * k] = 'a';
-        }
-    }
-    std::cout << "Memory polluted" << std::endl;
-}
-
 
 void fromHex(
         const std::string &in,
@@ -60,30 +37,25 @@ void fromHex(
 }
 
 int main(int argc, char **argv) {
-    std::cout << "Starting" << std::endl;
-
+    if (argc < 2) {
+        std::cerr << "Usage: "
+                  << argv[0]
+                  << " <path to sketches.txt (see thirdparty/parquet/sketches.txt)>"
+                  << std::endl;
+        return 1;
+    }
 
     auto intersection = theta_intersection(SEED_DEFAULT);
-
-    // First pass (the empty sketch from initiate)
-    auto initial_data = make_union_sketch().get_result().serialize();
-    std::cout << initial_data.second << std::endl;
-    auto initial_sketch = compact_theta_sketch::deserialize(initial_data.first.get(),
-                                                            initial_data.second,
-                                                            SEED_DEFAULT);
-    intersection.update(initial_sketch);
-
-    auto data2 = intersection.get_result().serialize();
-
     // Read sketches from parquet extract
-    std::ifstream file("/tmp/thetasketch/1.0.0/project/thirdparty/parquet/sketches.txt");
+    std::ifstream file(argv[1]);
     std::string str;
     while (std::getline(file, str)) {
+        std::cout << "add More" << std::endl;
         // Add them in the intersection
         unsigned char bytes[str.length() / 2];
         fromHex(str, bytes);
         auto second_sketch = compact_theta_sketch::deserialize(bytes,
-                                                               str.length()/2,
+                                                               str.length() / 2,
                                                                SEED_DEFAULT);
         intersection.update(second_sketch);
     }
@@ -91,5 +63,6 @@ int main(int argc, char **argv) {
     // force serialization of intersection
     auto data = intersection.get_result().serialize();
 
-    std::cout << "Done: " << intersection.get_result().get_theta64() << std::endl;
+
+    std::cout << "Done: " << intersection.get_result().get_estimate() << std::endl;
 }
