@@ -15,5 +15,5 @@ file(GLOB LIBRARIES "thirdparty/${THETA_DIR}/build/*.dylib")
 
 message("LIBRARIES = ${LIBRARIES}")
 
-add_executable(theta-client-1.0.0 ${SOURCES})
+add_executable(theta-client-1.0.0 ${SOURCES} src/MemoryGenerationTest.cpp src/MemoryGenerationTest.h src/SketchFromTextTest.cpp src/SketchFromTextTest.h src/common.h)
 target_link_libraries(theta-client-1.0.0 ${LIBRARIES})  

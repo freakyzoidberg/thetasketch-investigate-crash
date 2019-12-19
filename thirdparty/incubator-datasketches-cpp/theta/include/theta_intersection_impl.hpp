@@ -133,7 +133,16 @@ void theta_intersection_alloc<A>::update(const theta_sketch_alloc<A>& sketch) {
     uint32_t match_count = 0;
     for (auto key: sketch) {
       if (key < theta_) {
-        if (update_theta_sketch_alloc<A>::hash_search(key, keys_, lg_size_)) matched_keys[match_count++] = key;
+        if (update_theta_sketch_alloc<A>::hash_search(key, keys_, lg_size_)) {
+            if (match_count >= max_matches) {
+                // match_keys was allocated for max_matches elements
+                // writing at matched_keys[max_match and beyond] is unsafe
+                throw std::invalid_argument("Too many keys to update, corrupted sketch?");
+            } else {
+                matched_keys[match_count++] = key;
+            }
+
+        }
       } else if (sketch.is_ordered()) {
         break; // early stop
       }
